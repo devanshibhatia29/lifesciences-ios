@@ -13,7 +13,20 @@
                     <view key="view" contentMode="scaleToFill" id="Ze5-6b-2t3">
                         <rect key="frame" x="0.0" y="0.0" width="375" height="667"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
-                        <color key="backgroundColor" xcode11CocoaTouchSystemColor="systemBackgroundColor" cocoaTouchSystemColor="whiteColor"/>
+                        <subviews>
+                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="NetflixLogo" translatesAutoresizingMaskIntoConstraints="NO" id="Cbd-Vy-l6P">
+                                <rect key="frame" x="87.5" y="233.5" width="200" height="200"/>
+                                <constraints>
+                                    <constraint firstAttribute="width" constant="200" id="8tQ-j1-NNp"/>
+                                    <constraint firstAttribute="height" constant="200" id="dcx-kf-f65"/>
+                                </constraints>
+                            </imageView>
+                        </subviews>
+                        <color key="backgroundColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                        <constraints>
+                            <constraint firstItem="Cbd-Vy-l6P" firstAttribute="centerY" secondItem="Ze5-6b-2t3" secondAttribute="centerY" id="2Ex-fp-X3O"/>
+                            <constraint firstItem="Cbd-Vy-l6P" firstAttribute="centerX" secondItem="Ze5-6b-2t3" secondAttribute="centerX" id="OGq-MF-WxW"/>
+                        </constraints>
                         <viewLayoutGuide key="safeArea" id="6Tk-OE-BBY"/>
                     </view>
                 </viewController>
@@ -22,4 +35,7 @@
             <point key="canvasLocation" x="53" y="375"/>
         </scene>
     </scenes>
+    <resources>
+        <image name="NetflixLogo" width="200" height="200"/>
+    </resources>
 </document>
