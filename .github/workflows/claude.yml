@@ -27,18 +27,12 @@ jobs:
       
       - name: Claude Code
         uses: anthropics/claude-code-action@v0
-        env:
-          # Required AWS Bedrock credentials
-          AWS_REGION: ${{ secrets.AWS_REGION }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         with:
-          # Use environment variables for Bedrock configuration
-          use_bedrock: true
+          # Use API key directly instead of Bedrock
+          anthropic_api_key: ${{ secrets.ANTHROPIC_AUTH_TOKEN }}
+          # Custom configuration
           claude_env: |
             {
-              "ANTHROPIC_BEDROCK_BASE_URL": "${{ secrets.ANTHROPIC_BEDROCK_BASE_URL }}",
-              "ANTHROPIC_AUTH_TOKEN": "${{ secrets.ANTHROPIC_AUTH_TOKEN }}",
-              "CLAUDE_CODE_SKIP_BEDROCK_AUTH": "${{ secrets.CLAUDE_CODE_SKIP_BEDROCK_AUTH }}",
-              "CLAUDE_CODE_USE_BEDROCK": "${{ secrets.CLAUDE_CODE_USE_BEDROCK }}"
+              "ANTHROPIC_API_URL": "https://eng-ai-model-gateway.sfproxy.devx-preprod.aws-esvc1-useast2.aws.sfdc.cl/chat/completions",
+              "ANTHROPIC_API_VERSION": "2023-06-01"
             }
