@@ -5,19 +5,16 @@ on:
 
 jobs:
   test-claude-proxy:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted  # Changed to use self-hosted runner
     steps:
       - uses: actions/checkout@v3
       
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
-          
+      # No need to set up Python if already installed on your Mac
+      # But we'll keep the dependency installation step
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install requests
+          python3 -m pip install --upgrade pip
+          pip3 install requests
           
       - name: Test Salesforce Claude Proxy
         env:
@@ -88,4 +85,4 @@ jobs:
                   sys.exit(1)
           EOL
           
-          python test_claude_proxy.py
+          python3 test_claude_proxy.py
