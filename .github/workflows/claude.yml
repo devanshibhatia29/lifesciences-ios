@@ -28,11 +28,14 @@ jobs:
       - name: Claude Code
         uses: anthropics/claude-code-action@v0
         with:
-          # Use API key directly instead of Bedrock
+          # Explicitly set to direct API model
+          anthropic_model: "claude-sonnet-4-20250514"
           anthropic_api_key: ${{ secrets.ANTHROPIC_AUTH_TOKEN }}
-          # Custom configuration
           claude_env: |
             {
               "ANTHROPIC_API_URL": "https://eng-ai-model-gateway.sfproxy.devx-preprod.aws-esvc1-useast2.aws.sfdc.cl/chat/completions",
-              "ANTHROPIC_API_VERSION": "2023-06-01"
+              "ANTHROPIC_API_VERSION": "2023-06-01",
+              "ANTHROPIC_AUTH_METHOD": "bearer",
+              "ANTHROPIC_API_KEY_HEADER": "Authorization",
+              "ANTHROPIC_API_KEY_FORMAT": "Bearer {key}"
             }
