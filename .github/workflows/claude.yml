@@ -1,6 +1,8 @@
 name: Claude Code
 
 on:
+  issues:
+    types: [opened]
   issue_comment:
     types: [created]
   pull_request_review_comment:
@@ -9,8 +11,8 @@ on:
 jobs:
   claude:
     runs-on: ubuntu-latest
-    # Only run for comments that mention @claude
-    if: contains(github.event.comment.body, '@claude')
+    # Only run for comments that mention @claude or issues with @claude
+    if: contains(github.event.comment.body, '@claude') || (github.event_name == 'issues' && contains(github.event.issue.body, '@claude'))
     steps:
       - uses: actions/checkout@v3
         with:
