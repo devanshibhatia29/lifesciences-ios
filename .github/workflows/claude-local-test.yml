@@ -1,0 +1,104 @@
+name: Claude Bot Local Test
+
+on:
+  workflow_dispatch:  # Manual trigger for local testing
+
+jobs:
+  claude-bot-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      
+      - name: Set up test environment
+        run: |
+          echo "Setting up test environment for Claude bot..."
+          # Create a mock issue/comment for testing
+          cat > mock_issue.json << 'EOL'
+          {
+            "body": "Hello @claude, can you help me reverse a string in Swift?"
+          }
+          EOL
+          
+          echo "Created mock issue content:"
+          cat mock_issue.json
+      
+      - name: Test Claude Code Action locally
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GITHUB_EVENT_NAME: "issues"
+          MOCK_ISSUE_BODY: "Hello @claude, can you help me reverse a string in Swift?"
+        run: |
+          # This simulates what the claude-code-action would do
+          echo "Testing Claude Code action with mock issue..."
+          
+          # Create a Python script to simulate the action
+          cat > test_claude_action.py << 'EOL'
+          import os
+          import json
+          import requests
+          import sys
+          
+          # Configuration
+          api_key = os.environ.get("ANTHROPIC_API_KEY")
+          event_name = os.environ.get("GITHUB_EVENT_NAME", "issues")
+          issue_body = os.environ.get("MOCK_ISSUE_BODY", "Hello @claude, test question")
+          
+          # Salesforce Claude proxy endpoint
+          url = "https://eng-ai-model-gateway.sfproxy.devx-preprod.aws-esvc1-useast2.aws.sfdc.cl/chat/completions"
+          
+          print(f"Testing Claude bot with event type: {event_name}")
+          print(f"Issue/comment body: {issue_body}")
+          
+          # Extract the actual question (remove @claude mention)
+          question = issue_body.replace("@claude", "").strip()
+          if not question:
+              question = "Please introduce yourself and explain how you can help with coding tasks."
+          
+          headers = {
+              "Authorization": f"Bearer {api_key}",
+              "Content-Type": "application/json"
+          }
+          
+          data = {
+              "model": "claude-sonnet-4-20250514",
+              "messages": [
+                  {
+                      "role": "system",
+                      "content": "You are Claude, an AI assistant integrated with GitHub through claude-code-action. You are helping users with code-related questions on GitHub issues and comments. Keep your responses clear, helpful, and concise."
+                  },
+                  {
+                      "role": "user",
+                      "content": question
+                  }
+              ],
+              "max_tokens": 1000,
+              "temperature": 0.7
+          }
+          
+          try:
+              print("\nSending request to Claude API...")
+              response = requests.post(url, headers=headers, json=data, timeout=30)
+              
+              if response.ok:
+                  result = response.json()
+                  print("\nClaude would respond with:")
+                  print("-" * 40)
+                  response_content = result.get("choices", [{}])[0].get("message", {}).get("content", "No response generated")
+                  print(response_content)
+                  print("-" * 40)
+                  
+                  # In the real action, this would be posted as a comment
+                  print("\nIn a real GitHub environment, this response would be posted as a comment to the issue or PR.")
+              else:
+                  print(f"\nError {response.status_code}: {response.text}")
+                  sys.exit(1)
+          except Exception as e:
+              print(f"\nException occurred: {str(e)}")
+              sys.exit(1)
+          
+          EOL
+          
+          # Run the test script
+          python3 test_claude_action.py
