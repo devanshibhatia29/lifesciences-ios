@@ -32,6 +32,8 @@ jobs:
           echo "ANTHROPIC_BASE_URL=https://eng-ai-model-gateway.sfproxy.devx-preprod.aws-esvc1-useast2.aws.sfdc.cl/chat/completions" >> $GITHUB_ENV
           echo "ANTHROPIC_API_BASE=https://eng-ai-model-gateway.sfproxy.devx-preprod.aws-esvc1-useast2.aws.sfdc.cl/chat/completions" >> $GITHUB_ENV
           echo "CLAUDE_CODE_USE_DIRECT_COMPLETION_ENDPOINT=1" >> $GITHUB_ENV
+          # Set the model identifier directly in environment variables
+          echo "ANTHROPIC_MODEL=claude-sonnet-4-20250514" >> $GITHUB_ENV
           echo "Environment variables set"
       
       - name: Claude Code
@@ -39,10 +41,12 @@ jobs:
         env:
           ANTHROPIC_BASE_URL: https://eng-ai-model-gateway.sfproxy.devx-preprod.aws-esvc1-useast2.aws.sfdc.cl/chat/completions
           ANTHROPIC_API_BASE: https://eng-ai-model-gateway.sfproxy.devx-preprod.aws-esvc1-useast2.aws.sfdc.cl/chat/completions
+          ANTHROPIC_MODEL: claude-sonnet-4-20250514
           CLAUDE_CODE_USE_DIRECT_COMPLETION_ENDPOINT: "1"
           CLAUDE_CODE_SKIP_BEDROCK_AUTH: "1"
           CLAUDE_CODE_USE_BEDROCK: "1"
         with:
-          anthropic_model: "claude-3-sonnet-20240620"
+          # Don't specify the model identifier in the action parameters,
+          # let it use the environment variable
           # Using direct ANTHROPIC_API_KEY (no renaming)
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
