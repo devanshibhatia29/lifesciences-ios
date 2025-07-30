@@ -6,53 +6,78 @@ on:
 jobs:
   test-api:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v3
-      
+
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.10'
-          
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install anthropic
-          
-      - name: Test Claude API
+          pip install requests
+
+      - name: Test Claude API via Salesforce Proxy
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_AUTH_TOKEN }}
         run: |
-          cat << EOF > test_claude.py
+          cat <<EOF > test_claude.py
           import os
-          from anthropic import Anthropic
+          import requests
+          import json
 
-          client = Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+          def test_claude_salesforce_proxy():
+              api_key = os.environ.get("ANTHROPIC_API_KEY")
+              if not api_key:
+                  print("Missing ANTHROPIC_API_KEY env variable")
+                  return False
 
-          def test_claude_prompt():
+              url = "https://eng-ai-model-gateway.sfproxy.devx-preprod.aws-esvc1-useast2.aws.sfdc.cl/chat/completions"
+
+              headers = {
+                  "Authorization": f"Bearer {api_key}",
+                  "Content-Type": "application/json"
+              }
+
+              data = {
+                  "model": "claude-sonnet-4-20250514",
+                  "messages": [
+                      {
+                          "role": "system",
+                          "content": "You are a precise and helpful coding assistant for developers. Respond with clean, correct, and minimal code or concise technical guidance."
+                      },
+                      {
+                          "role": "user",
+                          "content": "Python function to reverse a string."
+                      }
+                  ],
+                  "max_tokens": 300,
+                  "temperature": 0.2
+              }
+
               try:
-                  response = client.messages.create(
-                      model="claude-3-sonnet-20240620",
-                      max_tokens=300,
-                      temperature=0.2,
-                      system="You are a precise and helpful coding assistant for developers—respond with clean, correct, and minimal code or concise technical guidance.",
-                      messages=[
-                          {"role": "user", "content": "Python function to reverse a string.?"}
-                      ]
-                  )
-                  print("✓ API connection successful!")
-                  print("Claude Response:\n")
-                  print(response.content[0].text)
-                  return True
+                  response = requests.post(url, headers=headers, json=data, timeout=30)
+                  print(f"Status code: {response.status_code}")
+
+                  if response.ok:
+                      print("✓ API connection successful!")
+                      print("Claude Response:\n")
+                      print(response.json().get("choices", [{}])[0].get("message", {}).get("content", "⚠️ No content"))
+                      return True
+                  else:
+                      print(f"✗ Error {response.status_code}: {response.text}")
+                      return False
+
               except Exception as e:
-                  print("✗ API connection failed:")
-                  print(f"Error: {e}")
+                  print(f"✗ Exception: {e}")
                   return False
 
           if __name__ == "__main__":
-              success = test_claude_prompt()
-              if not success:
+              if not test_claude_salesforce_proxy():
                   exit(1)
           EOF
-          
+
           python test_claude.py
