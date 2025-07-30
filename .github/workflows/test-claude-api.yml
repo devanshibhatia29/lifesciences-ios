@@ -1,0 +1,58 @@
+name: Test Claude API Connection
+
+on:
+  workflow_dispatch:  # Manual trigger
+
+jobs:
+  test-api:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+          
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install anthropic
+          
+      - name: Test Claude API
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_AUTH_TOKEN }}
+        run: |
+          cat << EOF > test_claude.py
+          import os
+          from anthropic import Anthropic
+
+          client = Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+
+          def test_claude_prompt():
+              try:
+                  response = client.messages.create(
+                      model="claude-3-sonnet-20240620",
+                      max_tokens=300,
+                      temperature=0.2,
+                      system="You are a precise and helpful coding assistant for developers—respond with clean, correct, and minimal code or concise technical guidance.",
+                      messages=[
+                          {"role": "user", "content": "Python function to reverse a string.?"}
+                      ]
+                  )
+                  print("✓ API connection successful!")
+                  print("Claude Response:\n")
+                  print(response.content[0].text)
+                  return True
+              except Exception as e:
+                  print("✗ API connection failed:")
+                  print(f"Error: {e}")
+                  return False
+
+          if __name__ == "__main__":
+              success = test_claude_prompt()
+              if not success:
+                  exit(1)
+          EOF
+          
+          python test_claude.py
