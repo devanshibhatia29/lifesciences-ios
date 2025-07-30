@@ -8,6 +8,13 @@ on:
   pull_request_review_comment:
     types: [created]
 
+# Add permissions for OIDC token
+permissions:
+  contents: read
+  id-token: write
+  issues: write
+  pull-requests: write
+
 jobs:
   claude:
     runs-on: ubuntu-latest
@@ -21,8 +28,12 @@ jobs:
       - name: Claude Code
         uses: anthropics/claude-code-action@v0
         with:
-          # Pass through your Bedrock configuration
-          ANTHROPIC_BEDROCK_BASE_URL: ${{ secrets.ANTHROPIC_BEDROCK_BASE_URL }}
-          ANTHROPIC_AUTH_TOKEN: ${{ secrets.ANTHROPIC_AUTH_TOKEN }}
-          CLAUDE_CODE_SKIP_BEDROCK_AUTH: ${{ secrets.CLAUDE_CODE_SKIP_BEDROCK_AUTH }}
-          CLAUDE_CODE_USE_BEDROCK: ${{ secrets.CLAUDE_CODE_USE_BEDROCK }}
+          # Use environment variables for Bedrock configuration
+          use_bedrock: true
+          claude_env: |
+            {
+              "ANTHROPIC_BEDROCK_BASE_URL": "${{ secrets.ANTHROPIC_BEDROCK_BASE_URL }}",
+              "ANTHROPIC_AUTH_TOKEN": "${{ secrets.ANTHROPIC_AUTH_TOKEN }}",
+              "CLAUDE_CODE_SKIP_BEDROCK_AUTH": "${{ secrets.CLAUDE_CODE_SKIP_BEDROCK_AUTH }}",
+              "CLAUDE_CODE_USE_BEDROCK": "${{ secrets.CLAUDE_CODE_USE_BEDROCK }}"
+            }
