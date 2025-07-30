@@ -25,9 +25,24 @@ jobs:
         with:
           fetch-depth: 0
       
+      # Set up environment before running Claude
+      - name: Set up Claude environment
+        run: |
+          echo "Setting up Claude environment variables"
+          echo "ANTHROPIC_BASE_URL=https://eng-ai-model-gateway.sfproxy.devx-preprod.aws-esvc1-useast2.aws.sfdc.cl/chat/completions" >> $GITHUB_ENV
+          echo "ANTHROPIC_API_BASE=https://eng-ai-model-gateway.sfproxy.devx-preprod.aws-esvc1-useast2.aws.sfdc.cl/chat/completions" >> $GITHUB_ENV
+          echo "CLAUDE_CODE_USE_DIRECT_COMPLETION_ENDPOINT=1" >> $GITHUB_ENV
+          echo "Environment variables set"
+      
       - name: Claude Code
         uses: anthropics/claude-code-action@v0
+        env:
+          ANTHROPIC_BASE_URL: https://eng-ai-model-gateway.sfproxy.devx-preprod.aws-esvc1-useast2.aws.sfdc.cl/chat/completions
+          ANTHROPIC_API_BASE: https://eng-ai-model-gateway.sfproxy.devx-preprod.aws-esvc1-useast2.aws.sfdc.cl/chat/completions
+          CLAUDE_CODE_USE_DIRECT_COMPLETION_ENDPOINT: "1"
+          CLAUDE_CODE_SKIP_BEDROCK_AUTH: "1"
+          CLAUDE_CODE_USE_BEDROCK: "1"
         with:
-          anthropic_model: "claude-sonnet-4-20250514"
+          anthropic_model: "claude-3-sonnet-20240620"
           # Using direct ANTHROPIC_API_KEY (no renaming)
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
