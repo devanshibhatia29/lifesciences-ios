@@ -5,7 +5,7 @@ import sys
 
 def test_claude_api_direct():
     """Test Claude API directly with requests library"""
-    api_key = "sk-u16oSLDpP54rkAxvlqyEXg" #os.environ.get("ANTHROPIC_AUTH_TOKEN")
+    api_key = os.environ.get("ANTHROPIC_AUTH_TOKEN")
     
     if not api_key:
         print("Error: ANTHROPIC_AUTH_TOKEN environment variable not set")
