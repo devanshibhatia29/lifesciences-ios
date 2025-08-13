@@ -15,8 +15,159 @@ from datetime import datetime
 
 app = Flask(__name__)
 
+def get_claude_code_implementation(title, description):
+    """Get Claude to analyze bug and provide actual code implementations"""
+    
+    import urllib3
+    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+    
+    # Get API key from environment
+    api_key = os.getenv('ANTHROPIC_API_KEY') or os.getenv('ANTHROPIC_AUTH_TOKEN')
+    
+    if not api_key:
+        return {
+            'success': False,
+            'error': 'No Claude API key found in environment'
+        }
+    
+    url = 'https://eng-ai-model-gateway.sfproxy.devx-preprod.aws-esvc1-useast2.aws.sfdc.cl/chat/completions'
+    
+    headers = {
+        'Authorization': f'Bearer {api_key}',
+        'Content-Type': 'application/json'
+    }
+    
+    # Enhanced prompt to get actual code implementations
+    prompt = f"""You are a senior iOS developer working on a Netflix clone app. A bug has been reported:
+
+**Bug Title:** {title}
+**Bug Description:** {description}
+
+Please provide ACTUAL CODE IMPLEMENTATIONS to fix this bug. For each file that needs to be modified, provide:
+
+1. **File Path**: Exact path from project root (e.g., NetflixClone/Controllers/HomeViewController.swift)
+2. **Complete Fixed Code**: The entire fixed file content, not just snippets
+
+Focus on these common Netflix clone files:
+- NetflixClone/Controllers/HomeViewController.swift
+- NetflixClone/Controllers/SearchViewController.swift  
+- NetflixClone/Controllers/UpcomingViewController.swift
+- NetflixClone/Controllers/DownloadViewController.swift
+- NetflixClone/MainTabBarViewController.swift
+- NetflixClone/Views/CollectionViewTableViewCell.swift
+
+Format your response as:
+
+## Analysis
+[Brief analysis of the bug]
+
+## Files to Modify
+
+### File: NetflixClone/path/to/file.swift
+```swift
+// Complete file content with fixes
+import UIKit
+
+class SomeViewController: UIViewController {{
+    // Fixed implementation
+}}
+```
+
+### File: NetflixClone/path/to/another/file.swift  
+```swift
+// Complete file content with fixes
+```
+
+Provide working, complete Swift code that can be directly committed to fix the bug."""
+    
+    data = {
+        'model': 'claude-sonnet-4-20250514',
+        'messages': [
+            {
+                'role': 'system',
+                'content': 'You are an expert iOS developer. Provide complete, working Swift code implementations that can be directly committed to fix bugs. Always provide full file contents, not partial snippets.'
+            },
+            {
+                'role': 'user',
+                'content': prompt
+            }
+        ],
+        'max_tokens': 4000,
+        'temperature': 0.1
+    }
+    
+    try:
+        response = requests.post(url, headers=headers, json=data, timeout=60, verify=False)
+        
+        if response.ok:
+            result = response.json()
+            content = result.get('choices', [{}])[0].get('message', {}).get('content', 'No response')
+            
+            return {
+                'success': True,
+                'claude_response': content,
+                'analysis_time': datetime.now().isoformat()
+            }
+        else:
+            return {
+                'success': False,
+                'error': f'Claude API error: {response.status_code}',
+                'details': response.text[:200]
+            }
+            
+    except Exception as e:
+        return {
+            'success': False,
+            'error': f'API call failed: {str(e)}'
+        }
+
+def parse_claude_code_changes(claude_response):
+    """Parse Claude's response to extract file changes"""
+    
+    files_to_change = []
+    lines = claude_response.split('\n')
+    
+    current_file = None
+    current_code = []
+    in_code_block = False
+    
+    for line in lines:
+        # Look for file declarations
+        if line.startswith('### File: '):
+            # Save previous file if we were processing one
+            if current_file and current_code:
+                files_to_change.append({
+                    'path': current_file,
+                    'content': '\n'.join(current_code).strip()
+                })
+            
+            # Start new file
+            current_file = line.replace('### File: ', '').strip()
+            current_code = []
+            in_code_block = False
+            
+        elif line.startswith('```swift'):
+            in_code_block = True
+            current_code = []  # Reset code for this block
+            
+        elif line.startswith('```') and in_code_block:
+            in_code_block = False
+            # Don't append the closing ``` 
+            
+        elif in_code_block and current_file:
+            current_code.append(line)
+    
+    # Save the last file
+    if current_file and current_code:
+        files_to_change.append({
+            'path': current_file,
+            'content': '\n'.join(current_code).strip()
+        })
+    
+    return files_to_change
+
 def create_draft_pr(title, description, claude_response):
-    """Create a draft PR with Claude's analysis and suggested fixes"""
+    """Create a draft PR with Claude's analysis (for script endpoint)"""
     
     github_token = os.getenv('GITHUB_TOKEN')
     if not github_token:
@@ -32,7 +183,7 @@ def create_draft_pr(title, description, claude_response):
     try:
         # Create a unique branch name
         timestamp = datetime.now().strftime('%Y%m%d-%H%M%S')
-        branch_name = f"claude-fix/{title.lower().replace(' ', '-')}-{timestamp}"
+        branch_name = f"claude-analysis/{title.lower().replace(' ', '-')}-{timestamp}"
         
         # Step 1: Get the main branch SHA
         main_url = f'https://api.github.com/repos/{repo_owner}/{repo_name}/git/refs/heads/{base_branch}'
@@ -64,8 +215,8 @@ def create_draft_pr(title, description, claude_response):
                 'error': f'Failed to create branch: {branch_response.status_code}'
             }
         
-        # Step 3: Create a commit with Claude's analysis (as a README file)
-        commit_message = f"Claude AI Analysis: {title}"
+        # Step 3: Create analysis file
+        import base64
         analysis_content = f"""# Bug Analysis Report
 Generated by Claude AI on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
 
@@ -80,15 +231,12 @@ Generated by Claude AI on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
 *This analysis was generated automatically by Claude AI. Please review and implement the suggested fixes.*
 """
         
-        # Encode content to base64
-        import base64
         encoded_content = base64.b64encode(analysis_content.encode()).decode()
         
-        # Create file
         file_path = f"CLAUDE_ANALYSIS_{timestamp}.md"
         create_file_url = f'https://api.github.com/repos/{repo_owner}/{repo_name}/contents/{file_path}'
         file_data = {
-            'message': commit_message,
+            'message': f"Claude AI Analysis: {title}",
             'content': encoded_content,
             'branch': branch_name
         }
@@ -102,7 +250,7 @@ Generated by Claude AI on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
         
         # Step 4: Create draft pull request
         pr_url = f'https://api.github.com/repos/{repo_owner}/{repo_name}/pulls'
-        pr_title = f"🤖 Claude AI Fix: {title}"
+        pr_title = f"🤖 Claude AI Analysis: {title}"
         pr_body = f"""## 🐛 Bug Report
 **Title:** {title}
 **Description:** {description}
@@ -138,6 +286,169 @@ Generated by Claude AI on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
                 'pr_url': pr_info['html_url'],
                 'branch_name': branch_name,
                 'analysis_file': file_path
+            }
+        else:
+            return {
+                'success': False,
+                'error': f'Failed to create PR: {pr_response.status_code}',
+                'details': pr_response.text[:200]
+            }
+            
+    except Exception as e:
+        return {
+            'success': False,
+            'error': f'PR creation failed: {str(e)}'
+        }
+
+def create_draft_pr_with_code_changes(title, description, claude_response):
+    """Create a draft PR with actual code implementations from Claude"""
+    
+    github_token = os.getenv('GITHUB_TOKEN')
+    if not github_token:
+        return {
+            'success': False,
+            'error': 'GITHUB_TOKEN not found in environment'
+        }
+    
+    repo_owner = 'Vasucd'
+    repo_name = 'NetflixClone'
+    base_branch = 'main'
+    
+    try:
+        # Parse Claude's response to extract file changes
+        files_to_change = parse_claude_code_changes(claude_response)
+        
+        if not files_to_change:
+            return {
+                'success': False,
+                'error': 'No code changes found in Claude response'
+            }
+        
+        # Create a unique branch name
+        timestamp = datetime.now().strftime('%Y%m%d-%H%M%S')
+        branch_name = f"claude-fix/{title.lower().replace(' ', '-')}-{timestamp}"
+        
+        # Step 1: Get the main branch SHA
+        main_url = f'https://api.github.com/repos/{repo_owner}/{repo_name}/git/refs/heads/{base_branch}'
+        headers = {
+            'Authorization': f'token {github_token}',
+            'Accept': 'application/vnd.github.v3+json'
+        }
+        
+        main_response = requests.get(main_url, headers=headers)
+        if not main_response.ok:
+            return {
+                'success': False,
+                'error': f'Failed to get main branch: {main_response.status_code}'
+            }
+        
+        main_sha = main_response.json()['object']['sha']
+        
+        # Step 2: Create a new branch
+        create_branch_url = f'https://api.github.com/repos/{repo_owner}/{repo_name}/git/refs'
+        branch_data = {
+            'ref': f'refs/heads/{branch_name}',
+            'sha': main_sha
+        }
+        
+        branch_response = requests.post(create_branch_url, headers=headers, json=branch_data)
+        if not branch_response.ok:
+            return {
+                'success': False,
+                'error': f'Failed to create branch: {branch_response.status_code}'
+            }
+        
+        # Step 3: Apply code changes to files
+        import base64
+        files_changed = []
+        
+        for file_change in files_to_change:
+            file_path = file_change['path']
+            new_content = file_change['content']
+            
+            # Get current file content (if it exists)
+            get_file_url = f'https://api.github.com/repos/{repo_owner}/{repo_name}/contents/{file_path}'
+            get_file_response = requests.get(get_file_url, headers=headers, params={'ref': base_branch})
+            
+            encoded_content = base64.b64encode(new_content.encode()).decode()
+            
+            if get_file_response.ok:
+                # File exists, update it
+                current_file = get_file_response.json()
+                file_data = {
+                    'message': f"Claude AI Fix: Update {file_path}",
+                    'content': encoded_content,
+                    'branch': branch_name,
+                    'sha': current_file['sha']  # Required for updates
+                }
+            else:
+                # File doesn't exist, create it
+                file_data = {
+                    'message': f"Claude AI Fix: Create {file_path}",
+                    'content': encoded_content,
+                    'branch': branch_name
+                }
+            
+            # Apply the change
+            update_file_url = f'https://api.github.com/repos/{repo_owner}/{repo_name}/contents/{file_path}'
+            update_response = requests.put(update_file_url, headers=headers, json=file_data)
+            
+            if update_response.ok:
+                files_changed.append(file_path)
+            else:
+                print(f"Failed to update {file_path}: {update_response.status_code}")
+        
+        if not files_changed:
+            return {
+                'success': False,
+                'error': 'Failed to apply any code changes'
+            }
+        
+        # Step 4: Create draft pull request
+        pr_url = f'https://api.github.com/repos/{repo_owner}/{repo_name}/pulls'
+        pr_title = f"🤖 Claude AI Fix: {title}"
+        
+        files_list = '\n'.join([f"- `{f}`" for f in files_changed])
+        pr_body = f"""## 🐛 Bug Report
+**Title:** {title}
+**Description:** {description}
+
+## 🤖 Claude AI Implementation
+Claude has analyzed this bug and **automatically implemented code fixes** in the following files:
+
+{files_list}
+
+## 📋 Changes Made
+{claude_response}
+
+## ✅ Ready for Review
+1. Review the code changes in this PR
+2. Test the fixes thoroughly on iOS simulator/device
+3. Merge when satisfied with the implementation
+
+---
+*This draft PR was automatically created by Claude AI with actual code implementations. The fixes are ready for testing and review.*
+"""
+        
+        pr_data = {
+            'title': pr_title,
+            'body': pr_body,
+            'head': branch_name,
+            'base': base_branch,
+            'draft': True
+        }
+        
+        pr_response = requests.post(pr_url, headers=headers, json=pr_data)
+        
+        if pr_response.ok:
+            pr_info = pr_response.json()
+            return {
+                'success': True,
+                'pr_number': pr_info['number'],
+                'pr_url': pr_info['html_url'],
+                'branch_name': branch_name,
+                'files_changed': files_changed,
+                'total_files': len(files_changed)
             }
         else:
             return {
@@ -356,12 +667,12 @@ def analyze_bug():
                 'error': 'Both title and description are required'
             }), 400
         
-        # Trigger Claude directly via API
-        result = trigger_claude_via_api(title, description)
+        # Get Claude's code implementation
+        result = get_claude_code_implementation(title, description)
         
         if result['success']:
-            # Create draft PR with Claude's analysis
-            pr_result = create_draft_pr(title, description, result['claude_response'])
+            # Create draft PR with actual code changes
+            pr_result = create_draft_pr_with_code_changes(title, description, result['claude_response'])
             
             response_data = {
                 'success': True,
@@ -369,7 +680,7 @@ def analyze_bug():
                 'bug_description': description,
                 'claude_analysis': result['claude_response'],
                 'analysis_time': result['analysis_time'],
-                'method': result['method']
+                'method': 'code_implementation'
             }
             
             if pr_result['success']:
@@ -378,7 +689,8 @@ def analyze_bug():
                     'pr_number': pr_result['pr_number'],
                     'pr_url': pr_result['pr_url'],
                     'branch_name': pr_result['branch_name'],
-                    'analysis_file': pr_result['analysis_file']
+                    'files_changed': pr_result['files_changed'],
+                    'total_files_changed': pr_result['total_files']
                 })
             else:
                 response_data.update({
@@ -476,17 +788,19 @@ def analyze_bug_script():
 if __name__ == '__main__':
     print("🚀 Starting Direct Runner API Server...")
     print("📋 This API triggers Claude directly on your machine")
-    print("📋 Then creates draft PRs with Claude's analysis!")
+    print("📋 Then creates draft PRs with ACTUAL CODE IMPLEMENTATIONS!")
     print("")
     print("📋 Available Endpoints:")
     print("  GET  /health                - Health check")
-    print("  POST /analyze-bug           - Direct Claude analysis + Draft PR")
+    print("  POST /analyze-bug           - Claude analysis + Code implementation + Draft PR")
     print("  POST /analyze-bug-script    - Claude analysis (via script) + Draft PR")
     print("")
     print("🔧 Requirements:")
     print("  ✅ Claude environment variables loaded")
     print("  ✅ GITHUB_TOKEN environment variable set")
     print("  ✅ test_claude_bot.py script working")
+    print("")
+    print("🎯 NEW: Claude now implements actual Swift code fixes!")
     print("")
     
     app.run(host='0.0.0.0', port=8000, debug=True) 
