@@ -20,7 +20,7 @@ on:
 
 # Add permissions for OIDC token
 permissions:
-  contents: read
+  contents: write  # Need read + write access for branches, commits, and file operations
   id-token: write
   issues: write
   pull-requests: write
