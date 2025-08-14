@@ -78,4 +78,5 @@ jobs:
           CLAUDE_CODE_SKIP_BEDROCK_AUTH: "1"
           CLAUDE_CODE_USE_BEDROCK: "1"
         with:
+          mode: agent
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
