@@ -46,28 +46,7 @@ jobs:
           echo "ANTHROPIC_MODEL=claude-sonnet-4-20250514" >> $GITHUB_ENV
           echo "Environment variables set"
       
-      - name: Create issue for Claude to process
-        if: github.event_name == 'workflow_dispatch'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const title = `[Auto-Generated] ${{ inputs.bug_title }}`;
-            const body = `**Bug Report from API:**
-            
-            **Title:** ${{ inputs.bug_title }}
-            **Description:** ${{ inputs.bug_description }}
-            
-            @claude Please analyze this bug and provide Swift code fixes for our iOS Netflix clone app.`;
-            
-            const { data: issue } = await github.rest.issues.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              title: title,
-              body: body
-            });
-            
-            console.log(`Created issue #${issue.number}: ${issue.html_url}`);
-      
+
       - name: Install dependencies
         run: |
           pip3 install --break-system-packages requests
@@ -141,48 +120,104 @@ jobs:
           print("Claude analysis completed")
           print(f"Response: {claude_response[:200]}...")
           
-          # Create GitHub issue with analysis
-          def create_analysis_issue(title, description, analysis):
+          # Create Draft PR with Claude's code implementation
+          def create_draft_pr(title, description, claude_response):
               github_token = "${{ secrets.GITHUB_TOKEN }}"
+              owner = "Vasucd"
+              repo = "NetflixClone"
+              
               headers = {
                   'Authorization': f'token {github_token}',
                   'Accept': 'application/vnd.github.v3+json'
               }
               
-              issue_body = f"""**Bug Report from API:**
-              
-              **Title:** {title}
-              **Description:** {description}
-              
-              **Claude's Code Analysis & Implementation:**
-              
-              {analysis}
-              """
-              
-              issue_data = {
-                  'title': f'[Claude Analysis] {title}',
-                  'body': issue_body
-              }
+              # Create a new branch
+              branch_name = f"claude-fix-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
               
               try:
-                  response = requests.post(
-                      'https://api.github.com/repos/Vasucd/NetflixClone/issues',
-                      headers=headers,
-                      json=issue_data
-                  )
-                  if response.status_code == 201:
-                      issue = response.json()
-                      print(f"✅ Created issue: {issue['html_url']}")
+                  # Get the main branch SHA
+                  main_response = requests.get(f'https://api.github.com/repos/{owner}/{repo}/git/refs/heads/main', headers=headers)
+                  if main_response.status_code != 200:
+                      print(f"❌ Failed to get main branch: {main_response.status_code}")
+                      return False
+                  
+                  main_sha = main_response.json()['object']['sha']
+                  
+                  # Create new branch
+                  branch_data = {
+                      'ref': f'refs/heads/{branch_name}',
+                      'sha': main_sha
+                  }
+                  
+                  branch_response = requests.post(f'https://api.github.com/repos/{owner}/{repo}/git/refs', headers=headers, json=branch_data)
+                  if branch_response.status_code != 201:
+                      print(f"❌ Failed to create branch: {branch_response.status_code}")
+                      return False
+                  
+                  print(f"✅ Created branch: {branch_name}")
+                  
+                  # Parse Claude's response and commit files
+                  # Look for file markers in Claude's response
+                  import re
+                  file_pattern = r'### File: (.+?)\n```(?:swift|objc)?\n(.*?)\n```'
+                  matches = re.findall(file_pattern, claude_response, re.DOTALL)
+                  
+                  if matches:
+                      for file_path, file_content in matches:
+                          file_path = file_path.strip()
+                          
+                          # Encode file content to base64
+                          content_encoded = base64.b64encode(file_content.encode('utf-8')).decode('utf-8')
+                          
+                          # Create/update file
+                          file_data = {
+                              'message': f'Fix bug: {title}',
+                              'content': content_encoded,
+                              'branch': branch_name
+                          }
+                          
+                          file_response = requests.put(f'https://api.github.com/repos/{owner}/{repo}/contents/{file_path}', headers=headers, json=file_data)
+                          if file_response.status_code in [200, 201]:
+                              print(f"✅ Updated file: {file_path}")
+                          else:
+                              print(f"❌ Failed to update {file_path}: {file_response.status_code}")
+                  
+                  # Create draft PR
+                  pr_body = f"""## 🐛 Bug Fix: {title}
+          
+          **Description:** {description}
+          
+          ## 🤖 Claude's Analysis & Implementation
+          
+          {claude_response}
+          
+          ---
+          *This PR was automatically generated by Claude AI*
+          """
+                  
+                  pr_data = {
+                      'title': f'🔧 Fix: {title}',
+                      'head': branch_name,
+                      'base': 'main',
+                      'body': pr_body,
+                      'draft': True
+                  }
+                  
+                  pr_response = requests.post(f'https://api.github.com/repos/{owner}/{repo}/pulls', headers=headers, json=pr_data)
+                  if pr_response.status_code == 201:
+                      pr = pr_response.json()
+                      print(f"🎉 Created draft PR: {pr['html_url']}")
                       return True
                   else:
-                      print(f"❌ Failed to create issue: {response.status_code} - {response.text}")
+                      print(f"❌ Failed to create PR: {pr_response.status_code} - {pr_response.text}")
                       return False
+                  
               except Exception as e:
-                  print(f"❌ Exception creating issue: {str(e)}")
+                  print(f"❌ Exception creating PR: {str(e)}")
                   return False
           
-          # Create the issue with analysis
-          create_analysis_issue(title, description, claude_response)
+          # Create the draft PR with Claude's implementation
+          create_draft_pr(title, description, claude_response)
           EOF
         env:
           PYTHONHTTPSVERIFY: 0
