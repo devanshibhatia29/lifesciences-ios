@@ -68,14 +68,9 @@ jobs:
             
             console.log(`Created issue #${issue.number}: ${issue.html_url}`);
       
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.9'
-      
       - name: Install dependencies
         run: |
-          pip install requests
+          pip3 install --break-system-packages requests
       
       - name: Call Claude API and Create PR
         run: |
