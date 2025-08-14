@@ -56,7 +56,12 @@ jobs:
           CLAUDE_CODE_SKIP_BEDROCK_AUTH: "1"
           CLAUDE_CODE_USE_BEDROCK: "1"
         with:
-          # Don't specify the model identifier in the action parameters,
-          # let it use the environment variable
-          # Using direct ANTHROPIC_API_KEY (no renaming)
+          mode: agent
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            A bug has been reported in our iOS Netflix clone app:
+            
+            **Bug Title:** ${{ inputs.bug_title || github.event.issue.title || github.event.comment.body }}
+            **Bug Description:** ${{ inputs.bug_description || github.event.issue.body || github.event.comment.body }}
+            
+            Please analyze this bug and provide code fixes for the iOS Swift application.
