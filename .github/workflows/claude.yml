@@ -46,6 +46,28 @@ jobs:
           echo "ANTHROPIC_MODEL=claude-sonnet-4-20250514" >> $GITHUB_ENV
           echo "Environment variables set"
       
+      - name: Create issue for Claude to process
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = `[Auto-Generated] ${{ inputs.bug_title }}`;
+            const body = `**Bug Report from API:**
+            
+            **Title:** ${{ inputs.bug_title }}
+            **Description:** ${{ inputs.bug_description }}
+            
+            @claude Please analyze this bug and provide Swift code fixes for our iOS Netflix clone app.`;
+            
+            const { data: issue } = await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: title,
+              body: body
+            });
+            
+            console.log(`Created issue #${issue.number}: ${issue.html_url}`);
+      
       - name: Claude Code
         uses: anthropics/claude-code-action@v0
         env:
@@ -56,12 +78,4 @@ jobs:
           CLAUDE_CODE_SKIP_BEDROCK_AUTH: "1"
           CLAUDE_CODE_USE_BEDROCK: "1"
         with:
-          mode: agent
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          prompt: |
-            A bug has been reported in our iOS Netflix clone app:
-            
-            **Bug Title:** ${{ inputs.bug_title || github.event.issue.title || github.event.comment.body }}
-            **Bug Description:** ${{ inputs.bug_description || github.event.issue.body || github.event.comment.body }}
-            
-            Please analyze this bug and provide code fixes for the iOS Swift application.
