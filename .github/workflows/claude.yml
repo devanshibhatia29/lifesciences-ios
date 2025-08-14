@@ -122,7 +122,7 @@ jobs:
           
           # Create Draft PR with Claude's code implementation
           def create_draft_pr(title, description, claude_response):
-              github_token = "${{ secrets.GITHUB_TOKEN }}"
+              github_token = "${{ secrets.PERSONAL_GITHUB_TOKEN }}"  # Use personal token that has repo access
               owner = "Vasucd"
               repo = "NetflixClone"
               
@@ -169,12 +169,18 @@ jobs:
                           # Encode file content to base64
                           content_encoded = base64.b64encode(file_content.encode('utf-8')).decode('utf-8')
                           
-                          # Create/update file
+                          # Check if file exists first
+                          get_response = requests.get(f'https://api.github.com/repos/{owner}/{repo}/contents/{file_path}', headers=headers)
+                          
                           file_data = {
                               'message': f'Fix bug: {title}',
                               'content': content_encoded,
                               'branch': branch_name
                           }
+                          
+                          # If file exists, include its SHA for update
+                          if get_response.status_code == 200:
+                              file_data['sha'] = get_response.json()['sha']
                           
                           file_response = requests.put(f'https://api.github.com/repos/{owner}/{repo}/contents/{file_path}', headers=headers, json=file_data)
                           if file_response.status_code in [200, 201]:
