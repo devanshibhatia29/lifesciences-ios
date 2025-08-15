@@ -106,6 +106,8 @@ jobs:
               - For small bugs: Short explanation + targeted fixes to specific methods/properties
               - For complex issues: Detailed analysis + comprehensive implementation
               - AVOID over-engineering simple fixes with unnecessary explanations
+              - MAKE ACTUAL CHANGES: Don't just suggest possibilities, find the actual issue and fix it
+              - CHOOSE THE BEST FIX: If multiple options exist, pick the most likely one and implement it
               
               **REPOSITORY STRUCTURE:**
               {get_repo_structure()}
@@ -208,15 +210,41 @@ jobs:
                               
                           current_content = base64.b64decode(get_response.json()['content']).decode('utf-8')
                           
-                          # Look for diff changes in the response
-                          diff_pattern = rf'File: {re.escape(file_path)}.*?^- (.+)$.*?^\+ (.+)$'
-                          diff_match = re.search(diff_pattern, claude_response, re.MULTILINE | re.DOTALL)
+                          # Look for diff changes in the response (try multiple patterns)
+                          diff_patterns = [
+                              rf'File: {re.escape(file_path)}.*?^- (.+)$.*?^\+ (.+)$',
+                              rf'{re.escape(file_path)}.*?^- (.+)$.*?^\+ (.+)$',
+                              rf'- (.+)$.*?^\+ (.+)$'
+                          ]
+                          
+                          diff_match = None
+                          for pattern in diff_patterns:
+                              diff_match = re.search(pattern, claude_response, re.MULTILINE | re.DOTALL)
+                              if diff_match:
+                                  break
                           
                           if diff_match:
                               # Apply diff change
-                              old_line = diff_match.group(1)
-                              new_line = diff_match.group(2)
-                              new_content = current_content.replace(old_line, new_line)
+                              old_line = diff_match.group(1).strip()
+                              new_line = diff_match.group(2).strip()
+                              print(f"🔍 Found diff: '{old_line}' -> '{new_line}'")
+                              
+                              # Try exact match first, then partial match
+                              if old_line in current_content:
+                                  new_content = current_content.replace(old_line, new_line)
+                                  print(f"✅ Applied exact match replacement")
+                              else:
+                                  # Try to find similar line and replace
+                                  lines = current_content.split('\n')
+                                  for i, line in enumerate(lines):
+                                      if any(word in line for word in old_line.split() if len(word) > 3):
+                                          lines[i] = new_line
+                                          new_content = '\n'.join(lines)
+                                          print(f"✅ Applied partial match replacement on line {i+1}")
+                                          break
+                                  else:
+                                      print(f"❌ Could not find matching line to replace")
+                                      continue
                           else:
                               # Look for full file content in code blocks
                               code_pattern = rf'File: {re.escape(file_path)}.*?```(?:swift|objc)?\n(.*?)\n```'
