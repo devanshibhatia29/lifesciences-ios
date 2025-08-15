@@ -23,7 +23,8 @@ class MainTabBarViewController: UITabBarController {
         vc4.tabBarItem.image = UIImage(systemName: "arrow.down.to.line")
         
         vc1.title = "Netflix"
-        vc2.title = "Incoming"
+        vc2.title = "Upcoming"
+```
         vc3.title = "Top Search"
         vc4.title = "Downloads"
         
