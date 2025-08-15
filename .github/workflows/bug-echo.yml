@@ -1,0 +1,78 @@
+name: Bug Echo
+
+on:
+  workflow_dispatch:
+    inputs:
+      bug_title:
+        description: 'Bug title'
+        required: true
+        type: string
+      bug_description:
+        description: 'Bug description'
+        required: true
+        type: string
+
+jobs:
+  echo_bug:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      
+      - name: Echo Bug Information
+        run: |
+          echo "==============================================="
+          echo "📣 BUG ECHO WORKFLOW"
+          echo "==============================================="
+          echo "🐛 Bug Title: ${{ github.event.inputs.bug_title }}"
+          echo "📝 Bug Description: ${{ github.event.inputs.bug_description }}"
+          echo "==============================================="
+          
+          # Create a JSON file with the bug info
+          echo '{
+            "bug_title": "${{ github.event.inputs.bug_title }}",
+            "bug_description": "${{ github.event.inputs.bug_description }}",
+            "timestamp": "'$(date -u +"%Y-%m-%dT%H:%M:%SZ")'",
+            "workflow_run_id": "${{ github.run_id }}",
+            "triggered_by": "${{ github.actor }}"
+          }' > bug_report.json
+          
+          echo "✅ Bug information saved to bug_report.json"
+          cat bug_report.json
+      
+      - name: Create Bug Report Issue
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const bugInfo = JSON.parse(fs.readFileSync('bug_report.json', 'utf8'));
+            
+            const issue = await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `🐛 Bug Report: ${bugInfo.bug_title}`,
+              body: `## Bug Report
+              
+              **Title:** ${bugInfo.bug_title}
+              **Description:** ${bugInfo.bug_description}
+              **Reported at:** ${bugInfo.timestamp}
+              **Triggered by:** ${bugInfo.triggered_by}
+              
+              This issue was automatically created by the Bug Echo workflow.
+              Workflow Run ID: [${bugInfo.workflow_run_id}](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${bugInfo.workflow_run_id})
+              `
+            });
+            
+            console.log(`Issue created: ${issue.data.html_url}`);
+            
+            // Save the issue URL to the outputs
+            core.setOutput('issue_url', issue.data.html_url);
+            core.setOutput('issue_number', issue.data.number);
+      
+      - name: Report Success
+        run: |
+          echo "==============================================="
+          echo "✅ Bug report successfully processed!"
+          echo "📑 Issue created: ${{ steps.create_issue.outputs.issue_url }}"
+          echo "==============================================="
