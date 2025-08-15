@@ -119,11 +119,10 @@ jobs:
               **Bug Description:** {description}
               
               RESPONSE GUIDELINES - KEEP IT PROPORTIONAL:
-              - For simple typo/string fixes: Show ONLY the diff lines (- old + new), NO code blocks, NO explanations
+              - For simple typo fixes: Show ONLY the code change, NO additional explanations
               - For small bugs: One sentence explanation + code fix
               - For complex issues: Detailed analysis + comprehensive implementation
               - AVOID over-engineering simple fixes with unnecessary explanations
-              - AVOID markdown code blocks for simple one-line changes
               - MAKE ACTUAL CHANGES: Don't just suggest possibilities, find the actual issue and fix it
               - CHOOSE THE BEST FIX: If multiple options exist, pick the most likely one and implement it
               
