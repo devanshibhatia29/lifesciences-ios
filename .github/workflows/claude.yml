@@ -119,10 +119,10 @@ jobs:
               **Bug Description:** {description}
               
               RESPONSE GUIDELINES - KEEP IT PROPORTIONAL:
-              - For simple typo fixes: Show ONLY the code change, NO additional explanations
+              - For simple label/text changes: Show ONLY the code change, NO notes, NO explanations, NO commentary
               - For small bugs: One sentence explanation + code fix
               - For complex issues: Detailed analysis + comprehensive implementation
-              - AVOID over-engineering simple fixes with unnecessary explanations
+              - NEVER add "Note:" or explanatory text after simple string changes
               - MAKE ACTUAL CHANGES: Don't just suggest possibilities, find the actual issue and fix it
               - CHOOSE THE BEST FIX: If multiple options exist, pick the most likely one and implement it
               
