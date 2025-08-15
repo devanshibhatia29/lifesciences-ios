@@ -94,7 +94,7 @@ jobs:
               Please provide ACTUAL CODE IMPLEMENTATIONS to fix this bug. For each file that needs to be modified, provide:
               
               1. **File Path**: Exact path from project root (e.g., NetflixClone/Controllers/HomeViewController.swift)
-              2. **Complete Fixed Code**: The entire fixed file content, not just snippets
+              2. **Code Changes**: For simple fixes (typos, one-liners), show only the changed lines with diff format. For complex changes, provide complete file content.
               
               Format your response with clear file markers like:
               ### File: NetflixClone/Controllers/HomeViewController.swift
