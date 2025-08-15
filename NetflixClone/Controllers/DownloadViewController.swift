@@ -19,7 +19,10 @@ class DownloadViewController: UIViewController {
     /*
     // MARK: - Navigation
 
-    // In a storyboard-based application, you will often want to do a little preparation before navigation
+self.title = "Begin sync"
+```
+
+Without the complete DownloadViewController.swift file contents, I cannot provide the exact line number, but the fix involves changing any occurrence of "Sync" to "Begin sync" in the user-facing text.
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
         // Get the new view controller using segue.destination.
         // Pass the selected object to the new view controller.
