@@ -60,13 +60,14 @@ jobs:
           import base64
           from datetime import datetime
           
-          # Get inputs
+          # Get inputs with proper escaping
+          import json
           if "${{ github.event_name }}" == "workflow_dispatch":
-              title = "${{ inputs.bug_title }}"
-              description = "${{ inputs.bug_description }}"
+              title = json.loads(r'${{ toJSON(inputs.bug_title) }}')
+              description = json.loads(r'${{ toJSON(inputs.bug_description) }}')
           else:
-              title = "${{ github.event.issue.title }}"
-              description = "${{ github.event.issue.body }}"
+              title = json.loads(r'${{ toJSON(github.event.issue.title) }}')
+              description = json.loads(r'${{ toJSON(github.event.issue.body) }}')
           
           print(f"Processing bug: {title}")
           
