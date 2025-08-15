@@ -119,8 +119,8 @@ jobs:
               **Bug Description:** {description}
               
               RESPONSE GUIDELINES - KEEP IT PROPORTIONAL:
-              - For simple one-liner fixes: Provide brief explanation + minimal code changes only
-              - For small bugs: Short explanation + targeted fixes to specific methods/properties
+              - For simple typo fixes: Show ONLY the code change, NO additional explanations
+              - For small bugs: One sentence explanation + code fix
               - For complex issues: Detailed analysis + comprehensive implementation
               - AVOID over-engineering simple fixes with unnecessary explanations
               - MAKE ACTUAL CHANGES: Don't just suggest possibilities, find the actual issue and fix it
