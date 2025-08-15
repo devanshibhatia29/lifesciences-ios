@@ -168,18 +168,47 @@ jobs:
                   # Parse Claude's response and commit files
                   # Look for file markers in Claude's response
                   import re
-                  file_pattern = r'### File: (.+?)\n```(?:swift|objc)?\n(.*?)\n```'
-                  matches = re.findall(file_pattern, claude_response, re.DOTALL)
                   
-                  if matches:
-                      for file_path, file_content in matches:
+                  # Try to find "File: path" pattern for both diff and full file formats
+                  file_pattern = r'File: (.+?)(?:\n|$)'
+                  file_matches = re.findall(file_pattern, claude_response)
+                  
+                  if file_matches:
+                      for file_path in file_matches:
                           file_path = file_path.strip()
                           
-                          # Encode file content to base64
-                          content_encoded = base64.b64encode(file_content.encode('utf-8')).decode('utf-8')
-                          
-                          # Check if file exists first
+                          # Skip if this looks like code content instead of a file path
+                          if any(char in file_path for char in ['=', '(', ')', '{', '}', ';']):
+                              continue
+                              
+                          # Get current file content to apply diff
                           get_response = requests.get(f'https://api.github.com/repos/{owner}/{repo}/contents/{file_path}', headers=headers)
+                          if get_response.status_code != 200:
+                              print(f"❌ File not found: {file_path}")
+                              continue
+                              
+                          current_content = base64.b64decode(get_response.json()['content']).decode('utf-8')
+                          
+                          # Look for diff changes in the response
+                          diff_pattern = rf'File: {re.escape(file_path)}.*?^- (.+)$.*?^\+ (.+)$'
+                          diff_match = re.search(diff_pattern, claude_response, re.MULTILINE | re.DOTALL)
+                          
+                          if diff_match:
+                              # Apply diff change
+                              old_line = diff_match.group(1)
+                              new_line = diff_match.group(2)
+                              new_content = current_content.replace(old_line, new_line)
+                          else:
+                              # Look for full file content in code blocks
+                              code_pattern = rf'File: {re.escape(file_path)}.*?```(?:swift|objc)?\n(.*?)\n```'
+                              code_match = re.search(code_pattern, claude_response, re.DOTALL)
+                              if code_match:
+                                  new_content = code_match.group(1)
+                              else:
+                                  print(f"❌ No changes found for {file_path}")
+                                  continue
+                          # Encode new content to base64
+                          content_encoded = base64.b64encode(new_content.encode('utf-8')).decode('utf-8')
                           
                           file_data = {
                               'message': f'Fix bug: {title}',
@@ -187,9 +216,8 @@ jobs:
                               'branch': branch_name
                           }
                           
-                          # If file exists, include its SHA for update
-                          if get_response.status_code == 200:
-                              file_data['sha'] = get_response.json()['sha']
+                          # Include SHA for file update (we already fetched it above)
+                          file_data['sha'] = get_response.json()['sha']
                           
                           file_response = requests.put(f'https://api.github.com/repos/{owner}/{repo}/contents/{file_path}', headers=headers, json=file_data)
                           if file_response.status_code in [200, 201]:
