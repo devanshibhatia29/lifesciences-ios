@@ -125,8 +125,8 @@ jobs:
               # Use the same token from environment that triggered this workflow
               import os
               github_token = os.environ.get('GITHUB_TOKEN') or "${{ secrets.GITHUB_TOKEN }}"
-              owner = "Vasucd"
-              repo = "NetflixClone"
+              owner = "devanshibhatia29"
+              repo = "lifesciences-ios"
               
               headers = {
                   'Authorization': f'token {github_token}',
