@@ -25,7 +25,13 @@ class MainTabBarViewController: UITabBarController {
         vc1.title = "Netflix"
         vc2.title = "Incoming"
         vc3.title = "Top Search"
-        vc4.title = "Download Account"
+        vc4.title = "Account"
+```
+
+The complete corrected section should be:
+```swift
+vc4.title = "Account"
+```
         
         tabBar.tintColor = .label
         
