@@ -122,9 +122,8 @@ jobs:
           
           # Create Draft PR with Claude's code implementation
           def create_draft_pr(title, description, claude_response):
-              # Use the same token from environment that triggered this workflow
-              import os
-              github_token = os.environ.get('GITHUB_TOKEN') or "${{ secrets.GITHUB_TOKEN }}"
+              # Use personal token for PR creation (GitHub Actions token can't create PRs)
+              github_token = "${{ secrets.PERSONAL_GITHUB_TOKEN }}"
               owner = "devanshibhatia29"
               repo = "lifesciences-ios"
               
