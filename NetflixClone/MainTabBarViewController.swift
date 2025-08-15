@@ -17,7 +17,10 @@ class MainTabBarViewController: UITabBarController {
         let vc3 = UINavigationController(rootViewController: SearchViewController())
         let vc4 = UINavigationController(rootViewController: DownloadViewController())
         
-        vc1.tabBarItem.image = UIImage(systemName: "hosue")
+        vc1.tabBarItem.image = UIImage(systemName: "house")
+```
+
+**Fix:** Changed "hosue" to "house" to use the correct SF Symbols system image name.
         vc2.tabBarItem.image = UIImage(systemName: "play.circle")
         vc3.tabBarItem.image = UIImage(systemName: "magnifyingglass")
         vc4.tabBarItem.image = UIImage(systemName: "arrow.down.to.line")
