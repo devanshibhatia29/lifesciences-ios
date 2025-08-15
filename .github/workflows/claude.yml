@@ -70,6 +70,22 @@ jobs:
           
           print(f"Processing bug: {title}")
           
+          # Function to get repository structure
+          def get_repo_structure():
+              import os
+              structure = []
+              for root, dirs, files in os.walk('.'):
+                  # Skip hidden directories and common build folders
+                  dirs[:] = [d for d in dirs if not d.startswith('.') and d not in ['build', 'DerivedData']]
+                  level = root.replace('.', '').count(os.sep)
+                  indent = ' ' * 2 * level
+                  structure.append(f'{indent}{os.path.basename(root)}/')
+                  subindent = ' ' * 2 * (level + 1)
+                  for file in files:
+                      if not file.startswith('.') and file.endswith(('.swift', '.h', '.m', '.storyboard')):
+                          structure.append(f'{subindent}{file}')
+              return '\n'.join(structure[:50])  # Limit to 50 lines to avoid token limit
+          
           # Claude API call using your working endpoint
           def get_claude_analysis(title, description):
               api_key = "${{ secrets.ANTHROPIC_API_KEY }}"
@@ -91,7 +107,10 @@ jobs:
               - For complex issues: Detailed analysis + comprehensive implementation
               - AVOID over-engineering simple fixes with unnecessary explanations
               
-              Please provide ACTUAL CODE IMPLEMENTATIONS to fix this bug. For each file that needs to be modified, provide:
+              **REPOSITORY STRUCTURE:**
+              {get_repo_structure()}
+              
+              Please analyze the repository structure above to find the correct file paths. Then provide ACTUAL CODE IMPLEMENTATIONS to fix this bug. For each file that needs to be modified, provide:
               
               1. **File Path**: Exact path from project root (e.g., NetflixClone/Controllers/HomeViewController.swift)
               2. **Code Changes**: For simple fixes (typos, one-liners), show only the changed lines with diff format. For complex changes, provide complete file content.
