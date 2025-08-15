@@ -86,6 +86,23 @@ jobs:
                           structure.append(f'{subindent}{file}')
               return '\n'.join(structure[:50])  # Limit to 50 lines to avoid token limit
           
+          # Function to get relevant file contents
+          def get_relevant_files():
+              import os
+              contents = []
+              key_files = [
+                  'NetflixClone/MainTabBarViewController.swift',
+                  'NetflixClone/Controllers/HomeViewController.swift'
+              ]
+              for file_path in key_files:
+                  if os.path.exists(file_path):
+                      with open(file_path, 'r') as f:
+                          content = f.read()
+                          contents.append(f"=== {file_path} ===")
+                          contents.append(content[:1000])  # First 1000 chars to avoid token limit
+                          contents.append("")
+              return '\n'.join(contents)
+          
           # Claude API call using your working endpoint
           def get_claude_analysis(title, description):
               api_key = "${{ secrets.ANTHROPIC_API_KEY }}"
@@ -112,7 +129,10 @@ jobs:
               **REPOSITORY STRUCTURE:**
               {get_repo_structure()}
               
-              Please analyze the repository structure above to find the correct file paths. Then provide ACTUAL CODE IMPLEMENTATIONS to fix this bug. For each file that needs to be modified, provide:
+              **CURRENT FILE CONTENTS:**
+              {get_relevant_files()}
+              
+              Please analyze the repository structure and current file contents above to find the exact line that needs to be changed. Then provide ACTUAL CODE IMPLEMENTATIONS to fix this bug. Use the EXACT text from the current files in your diff. For each file that needs to be modified, provide:
               
               1. **File Path**: Exact path from project root (e.g., NetflixClone/Controllers/HomeViewController.swift)
               2. **Code Changes**: For simple fixes (typos, one-liners), show only the changed lines with diff format. For complex changes, provide complete file content.
