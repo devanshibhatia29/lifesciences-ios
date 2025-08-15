@@ -17,7 +17,8 @@ class MainTabBarViewController: UITabBarController {
         let vc3 = UINavigationController(rootViewController: SearchViewController())
         let vc4 = UINavigationController(rootViewController: DownloadViewController())
         
-        vc1.tabBarItem.image = UIImage(systemName: "hosue")
+vc4.title = "Downloads"
+```
         vc2.tabBarItem.image = UIImage(systemName: "play.circle")
         vc3.tabBarItem.image = UIImage(systemName: "magnifyingglass")
         
