@@ -2,26 +2,6 @@
 
 This guide explains how to use the Claude bot to create pull requests for your NetflixClone repository.
 
-## ✨ New: Official Claude Code Action
-
-**We've upgraded to the official Anthropic claude-code-action!** This provides:
-
-- **Built-in conciseness** - Automatically provides proportional responses
-- **Better reliability** - Professionally maintained by Anthropic  
-- **Simpler configuration** - No more custom Python scripts to maintain
-- **Enhanced code understanding** - Better repository analysis capabilities
-
-## Proportional Response Sizing
-
-Claude now provides responses proportional to the complexity of your request:
-
-- **Simple fixes** (typos, one-liners): Brief responses with minimal explanation
-- **Small features**: Concise explanations with targeted code changes  
-- **Complex features**: Detailed analysis and comprehensive implementation
-- **Bug fixes**: Short problem description + solution
-
-This means you'll get appropriately-sized responses instead of overly verbose explanations for simple tasks.
-
 ## Step-by-Step Guide
 
 ### 1. Creating an Issue for Claude
