@@ -25,7 +25,10 @@ class MainTabBarViewController: UITabBarController {
         vc1.title = "Netflix"
         vc2.title = "Incoming"
         vc3.title = "Top Search"
-        vc4.title = "Download Account"
+        vc4.title = "Download"
+```
+
+Note: The current file content appears to be truncated, but based on the pattern shown for other tab titles and the bug description, this is the most likely location and fix for the issue.
         
         tabBar.tintColor = .label
         
