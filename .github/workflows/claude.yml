@@ -85,6 +85,12 @@ jobs:
               **Bug Title:** {title}
               **Bug Description:** {description}
               
+              RESPONSE GUIDELINES - KEEP IT PROPORTIONAL:
+              - For simple one-liner fixes: Provide brief explanation + minimal code changes only
+              - For small bugs: Short explanation + targeted fixes to specific methods/properties
+              - For complex issues: Detailed analysis + comprehensive implementation
+              - AVOID over-engineering simple fixes with unnecessary explanations
+              
               Please provide ACTUAL CODE IMPLEMENTATIONS to fix this bug. For each file that needs to be modified, provide:
               
               1. **File Path**: Exact path from project root (e.g., NetflixClone/Controllers/HomeViewController.swift)
@@ -95,6 +101,8 @@ jobs:
               ```swift
               // Complete file content here
               ```
+              
+              Keep explanations concise and proportional to the complexity of the fix.
               """
               
               data = {
